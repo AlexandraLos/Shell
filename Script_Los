@@ -24,6 +24,11 @@ createrepo /var/www/html/local_repo/ && echo Success: installed packages to crea
 yum clean all  && echo Success:  there was a cleaning of temporary files
 
 #Set up RAID5 on 3 more drives
+echo -n 'Do you alreade have a RAID (y/n)?'
+read answer
+if ["$answer != "${answer#[N]}" ]; then
+echo "Raid will be mounted"
+
 yum install mdadm –y && echo Success: install mdadm
 echo "Enter the number of disks: "
 read NumberOfDisks 
@@ -46,13 +51,14 @@ vgcreate LVM_test /dev/md0 && echo Success: Volume Group created
 lvcreate -l +100%FREE -n LVM_data LVM_test && echo Success: Logical Volume created
 
 #Create xfs
-mkfs.xfs /dev/LVM_test/LVM_data && echo Success: file system created
+mkfs.xfs /dev/LVM_test/LVM_data -y && echo Success: file system created
 
 #Mount (i used /mnt/raid_mount)
 echo "Enter mount point: "
 read MountPoint
 mkdir $MountPoint && echo Success: mount point created
 mount -t xfs /dev/LVM_test/LVM_data $MountPoint && echo Success: raid mounted
+}
 
 #Explode the folder into the network with NFS
 yum install nfs-utils –y >> && echo Success: install nfs-utils
@@ -71,3 +77,19 @@ firewall-cmd --permanent --zone=public --add-service=nfs && echo Success: added 
 firewall-cmd --permanent --zone=public --add-service=mountd && echo Success: added the second rule for the firewall
 firewall-cmd --permanent --zone=public --add-service=rpc-bind && echo Success: added the third rule for the firewall
 firewall-cmd --reload && echo Success: reloaded the rules
+
+#Removed raid
+function removed_raid {
+umount $MountPoint
+lvremove /dev/LVM_test/LVM_data -y
+vgremove /dev/LVM_test -y
+pvremove /dev/md0 -y
+rm /etc/mdadm.conf -y
+mdadm --stop /dev/md0
+mdadm --zero-superblock /dev/$FirstName
+mdadm --zero-superblock /dev/$SecondName
+mdadm --zero-superblock /dev/$ThirdName
+(echo d; echo w) | fdisk /dev/$FirstName
+(echo d; echo w) | fdisk /dev/$SecondName
+(echo d; echo w) | fdisk /dev/$ThirdName
+}
