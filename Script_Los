@@ -24,25 +24,18 @@ createrepo /var/www/html/local_repo/ && echo Success: installed packages to crea
 yum clean all  && echo Success:  there was a cleaning of temporary files
 
 #Set up RAID5 on 3 more drives
-echo -n 'Do you alreade have a RAID (y/n)?'
-read answer
-if ["$answer != "${answer#[N]}" ]; then
-echo "Raid will be mounted"
-
 yum install mdadm –y && echo Success: install mdadm
-echo "Enter the number of disks: "
-read NumberOfDisks 
 echo "Enter first disk names: "
 read FirstName
 echo "Enter second disk names: "
 read SecondName
 echo "Enter third disk names: "
 read ThirdName
-mdadm --create --verbose /dev/md0 --level=5 --raid-devices=$NumberOfDisks /dev/$FirstName /dev/$SecondName /dev/$ThirdName && echo Success: raid array created
+mdadm --create --verbose /dev/md0 --level=5 --raid-devices=3 /dev/$FirstName /dev/$SecondName /dev/$ThirdName && echo Success: raid array created
 mkfs.xfs -f /dev/md0 && echo Success: file system created
-(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/$FirstName && echo Success: sdb disk mapped
-(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/$SecondName && echo Success: sdc disk mapped
-(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/$ThirdName && echo Success: sdd disk mapped
+(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/$FirstName && echo Success: first disk mapped
+(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/$SecondName && echo Success: second disk mapped
+(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/$ThirdName && echo Success: third disk mapped
 mdadm --detail --scan --verbose > /etc/mdadm.conf && echo Success: config file created
 
 #Set up LVM for the RAID
@@ -56,9 +49,13 @@ mkfs.xfs /dev/LVM_test/LVM_data -y && echo Success: file system created
 #Mount (i used /mnt/raid_mount)
 echo "Enter mount point: "
 read MountPoint
+if ! [ -d $MountPoint ]; then 
+echo 'No directory' 
 mkdir $MountPoint && echo Success: mount point created
+else 
+echo ‘Directory exists’
+fi
 mount -t xfs /dev/LVM_test/LVM_data $MountPoint && echo Success: raid mounted
-}
 
 #Explode the folder into the network with NFS
 yum install nfs-utils –y >> && echo Success: install nfs-utils
@@ -80,16 +77,16 @@ firewall-cmd --reload && echo Success: reloaded the rules
 
 #Removed raid
 function removed_raid {
-umount $MountPoint
-lvremove /dev/LVM_test/LVM_data -y
-vgremove /dev/LVM_test -y
-pvremove /dev/md0 -y
-rm /etc/mdadm.conf -y
-mdadm --stop /dev/md0
-mdadm --zero-superblock /dev/$FirstName
-mdadm --zero-superblock /dev/$SecondName
-mdadm --zero-superblock /dev/$ThirdName
-(echo d; echo w) | fdisk /dev/$FirstName
-(echo d; echo w) | fdisk /dev/$SecondName
-(echo d; echo w) | fdisk /dev/$ThirdName
+umount $MountPoint && echo Success: unmounted
+lvremove /dev/LVM_test/LVM_data -y && echo Success: logical volume remove
+vgremove /dev/LVM_test -y && echo Success: volume group remove
+pvremove /dev/md0 -y && echo Success: physical volume remove
+rm /etc/mdadm.conf -y && echo Success: mdadm.conf 
+mdadm --stop /dev/md0 && echo Success: mdadm stopped
+mdadm --zero-superblock /dev/$FirstName && echo Success: superblock on first disk is cleared
+mdadm --zero-superblock /dev/$SecondName && echo Success:superblock on second disk is cleared
+mdadm --zero-superblock /dev/$ThirdName && echo Success: superblock on third disk is cleared
+(echo d; echo w) | fdisk /dev/$FirstName && echo Success: partition on the first disk is deleted
+(echo d; echo w) | fdisk /dev/$SecondName && echo Success: partition on the second disk is deleted
+(echo d; echo w) | fdisk /dev/$ThirdName && echo Success: partition on the third disk is deleted
 }
