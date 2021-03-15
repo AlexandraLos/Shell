@@ -25,12 +25,12 @@ yum clean all  && echo Success:  there was a cleaning of temporary files
 
 #Set up RAID5 on 3 more drives
 yum install mdadm –y && echo Success: install mdadm
-mdadm --create --verbose /dev/md0 --level=5 --raid-devices=3 /dev/sdb /dev/sdc /dev/sdd && echo Success: raid array created
+#echo "Enter the number of disks: "
+#read NumberOfDisks 
+mdadm --create --verbose /dev/md0 --level=5 --raid-devices=$NumberOfDisks /dev/sdb /dev/sdc /dev/sdd && echo Success: raid array created
 mkfs.xfs -f /dev/md0 && echo Success: file system created
-mkdir /mnt/raid && echo Success: created new directory
 (echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/sdb && echo Success: sdb disk mapped
 (echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/sdc && echo Success: sdc disk mapped
-
 (echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/sdd && echo Success: sdd disk mapped
 mdadm --detail --scan --verbose > /etc/mdadm.conf && echo Success: config file created
 
@@ -58,7 +58,7 @@ systemctl start rpcbind && echo Success: start rpcbind
 systemctl start nfs-server && echo Success: start nfs-server
 systemctl start nfs-lock && echo Success: start nfs-lock
 systemctl start nfs-idmap && echo Success: start nfs-idmap
-echo '/mnt/raid_mount 192.168.10.0/24(rw,sync,no_root_squash,no_all_squash)' > /etc/exports && echo Success: server settings added to file
+echo '$MountPoint 192.168.10.0/24(rw,sync,no_root_squash,no_all_squash)' > /etc/exports && echo Success: server settings added to file
 exportfs -a && echo Success: export done
 systemctl restart nfs-server && echo Success: server restarted
 firewall-cmd --permanent --zone=public --add-service=nfs && echo Success: added the first rule for the firewall
