@@ -23,7 +23,15 @@ yum install createrepo  yum-utils && echo Success: install createrepo
 createrepo /var/www/html/local_repo/ && echo Success: installed packages to create, configure and manage local repository
 yum clean all  && echo Success:  there was a cleaning of temporary files
 
-#Set up RAID5 on 3 more drives
+#Set up RAID5 on 3 more drives (i used /mnt/raid_mount)
+echo "Enter mount point: "
+read MountPoint
+if ! [ -d $MountPoint ]; then 
+echo 'No directory' 
+mkdir $MountPoint && echo Success: mount point created
+else 
+echo ‘Directory exists’
+fi
 yum install mdadm –y && echo Success: install mdadm
 echo "Enter first disk names: "
 read FirstName
@@ -46,15 +54,7 @@ lvcreate -l +100%FREE -n LVM_data LVM_test && echo Success: Logical Volume creat
 #Create xfs
 mkfs.xfs /dev/LVM_test/LVM_data -y && echo Success: file system created
 
-#Mount (i used /mnt/raid_mount)
-echo "Enter mount point: "
-read MountPoint
-if ! [ -d $MountPoint ]; then 
-echo 'No directory' 
-mkdir $MountPoint && echo Success: mount point created
-else 
-echo ‘Directory exists’
-fi
+#Mount
 mount -t xfs /dev/LVM_test/LVM_data $MountPoint && echo Success: raid mounted
 
 #Explode the folder into the network with NFS
