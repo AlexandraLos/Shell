@@ -42,9 +42,11 @@ lvcreate -l +100%FREE -n LVM_data LVM_test && echo Success: Logical Volume creat
 #Create xfs
 mkfs.xfs /dev/LVM_test/LVM_data && echo Success: file system created
 
-#Mount
-mkdir /mnt/raid_mount && echo Success: mount point created
-mount -t xfs /dev/LVM_test/LVM_data /mnt/raid_mount && echo Success: raid mounted
+#Mount (i used /mnt/raid_mount)
+echo "Enter mount point: "
+read MountPoint
+mkdir $MountPoint && echo Success: mount point created
+mount -t xfs /dev/LVM_test/LVM_data $MountPoint && echo Success: raid mounted
 
 #Explode the folder into the network with NFS
 yum install nfs-utils –y >> && echo Success: install nfs-utils
