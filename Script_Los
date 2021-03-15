@@ -25,13 +25,19 @@ yum clean all  && echo Success:  there was a cleaning of temporary files
 
 #Set up RAID5 on 3 more drives
 yum install mdadm –y && echo Success: install mdadm
-#echo "Enter the number of disks: "
-#read NumberOfDisks 
-mdadm --create --verbose /dev/md0 --level=5 --raid-devices=$NumberOfDisks /dev/sdb /dev/sdc /dev/sdd && echo Success: raid array created
+echo "Enter the number of disks: "
+read NumberOfDisks 
+echo "Enter first disk names: "
+read FirstName
+echo "Enter second disk names: "
+read SecondName
+echo "Enter third disk names: "
+read ThirdName
+mdadm --create --verbose /dev/md0 --level=5 --raid-devices=$NumberOfDisks /dev/$FirstName /dev/$SecondName /dev/$ThirdName && echo Success: raid array created
 mkfs.xfs -f /dev/md0 && echo Success: file system created
-(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/sdb && echo Success: sdb disk mapped
-(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/sdc && echo Success: sdc disk mapped
-(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/sdd && echo Success: sdd disk mapped
+(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/$FirstName && echo Success: sdb disk mapped
+(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/$SecondName && echo Success: sdc disk mapped
+(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/$ThirdName && echo Success: sdd disk mapped
 mdadm --detail --scan --verbose > /etc/mdadm.conf && echo Success: config file created
 
 #Set up LVM for the RAID
