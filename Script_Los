@@ -1,50 +1,53 @@
 #!/bin/bash
 
+#Sending data to a log file
+script1.sh 2>&1 | tee script_logs.txt
+
 #Сonfigure network to have ssh access from local machine
-yum -y install openssh-server openssh-clients >> script_logs.txt && echo Success: install openssh
-iptables -A INPUT -p tcp --dport 22 -j ACCEPT >> srcipt_logs.txt && echo Success: port 22 is open
+yum -y install openssh-server openssh-clients && echo Success: install openssh
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT && echo Success: port 22 is open
 
 #Restrict ssh connections for root user and to single ssh port
-sed -i 's\PermitRootLogin yes\PermitRootLogin no\' /etc/ssh/sshd_config >> script_logs.txt && echo Success: disabled SSH access for root user
+sed -i 's\PermitRootLogin yes\PermitRootLogin no\' /etc/ssh/sshd_config && echo Success: disabled SSH access for root user
 systemctl restart sshd.service && echo Success: SSH service restart
 
 #Add local DVD ISO as an repo
 mkdir -p /var/www/html/local_repo && echo Success: local repository mount point created
-mount -o loop CentOS-7-x86_64-DVD-2009.iso /mnt >> script_logs.txt && echo Success: mount download ISO File
+mount -o loop CentOS-7-x86_64-DVD-2009.iso /mnt && echo Success: mount download ISO File
 cd /mnt && echo Success: directory changed
-tar cvf - . | (cd /var/www/html/local_repo/; tar xvf -) >> script_logs.txt && echo Success: locally copied ISO files to directory 
+tar cvf - . | (cd /var/www/html/local_repo/; tar xvf -) && echo Success: locally copied ISO files to directory 
 touch /etc/yum.repos.d/local-centos7.repo && echo Success: configuration file created
-chmod  644  /etc/yum.repos.d/local-centos7.repo >> script_logs.txt && echo Success: file permissions set
-echo -e “[LocalRepo] \nname=LocalRepo \nmetadata_expire=-1 \nenabled=1 \ngpgcheck=1 \nbaseurl=file:///var/www/html/local_repo/  \ngpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release” >> /etc/yum.repos.d/local.repo >> script_logs.txt && echo Success: file content changed
-yum install createrepo  yum-utils >> script_logs.txt && echo Success: install createrepo  
-createrepo /var/www/html/local_repo/ >> script_logs.txt && echo Success: installed packages to create, configure and manage local repository
+chmod  644  /etc/yum.repos.d/local-centos7.repo && echo Success: file permissions set
+echo -e “[LocalRepo] \nname=LocalRepo \nmetadata_expire=-1 \nenabled=1 \ngpgcheck=1 \nbaseurl=file:///var/www/html/local_repo/  \ngpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release” >> /etc/yum.repos.d/local.repo && echo Success: file content changed
+yum install createrepo  yum-utils && echo Success: install createrepo  
+createrepo /var/www/html/local_repo/ && echo Success: installed packages to create, configure and manage local repository
 yum clean all  && echo Success:  there was a cleaning of temporary files
 
 #Set up RAID5 on 3 more drives
-yum install mdadm –y >> script_logs.txt && echo Success: install mdadm
-mdadm --create --verbose /dev/md0 --level=5 --raid-devices=3 /dev/sdb /dev/sdc /dev/sdd >> script_logs.txt && echo Success: raid array created
-mkfs.xfs -f /dev/md0 >> script_logs.txt && echo Success: file system created
+yum install mdadm –y && echo Success: install mdadm
+mdadm --create --verbose /dev/md0 --level=5 --raid-devices=3 /dev/sdb /dev/sdc /dev/sdd && echo Success: raid array created
+mkfs.xfs -f /dev/md0 && echo Success: file system created
 mkdir /mnt/raid && echo Success: created new directory
-(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/sdb >> script_logs.txt && echo Success: sdb disk mapped
-(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/sdc >> script_logs.txt && echo Success: sdc disk mapped
+(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/sdb && echo Success: sdb disk mapped
+(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/sdc && echo Success: sdc disk mapped
 
-(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/sdd >> script_logs.txt && echo Success: sdd disk mapped
-mdadm --detail --scan --verbose > /etc/mdadm.conf >> script_logs.txt && echo Success: config file created
+(echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/sdd && echo Success: sdd disk mapped
+mdadm --detail --scan --verbose > /etc/mdadm.conf && echo Success: config file created
 
 #Set up LVM for the RAID
-pvcreate /dev/md0 >> script_logs.txt && echo Success: Physical Volume created 
-vgcreate LVM_test /dev/md0 >> script_logs.txt && echo Success: Volume Group created
-lvcreate -l +100%FREE -n LVM_data LVM_test >> script_logs.txt && echo Success: Logical Volume created
+pvcreate /dev/md0 && echo Success: Physical Volume created 
+vgcreate LVM_test /dev/md0 && echo Success: Volume Group created
+lvcreate -l +100%FREE -n LVM_data LVM_test && echo Success: Logical Volume created
 
 #Create xfs
-mkfs.xfs /dev/LVM_test/LVM_data >> script_logs.txt && echo Success: file system created
+mkfs.xfs /dev/LVM_test/LVM_data && echo Success: file system created
 
 #Mount
 mkdir /mnt/raid_mount && echo Success: mount point created
-mount -t xfs /dev/LVM_test/LVM_data /mnt/raid_mount >> script_logs.txt && echo Success: raid mounted
+mount -t xfs /dev/LVM_test/LVM_data /mnt/raid_mount && echo Success: raid mounted
 
 #Explode the folder into the network with NFS
-yum install nfs-utils –y >> script_logs.txt && echo Success: install nfs-utils
+yum install nfs-utils –y >> && echo Success: install nfs-utils
 systemctl enable rpcbind && echo Success: enable rpcbind
 systemctl enable nfs-server && echo Success: enable nfs-server
 systemctl enable nfs-lock && echo Success: enable nfs-lock
@@ -53,6 +56,6 @@ systemctl start rpcbind && echo Success: start rpcbind
 systemctl start nfs-server && echo Success: start nfs-server
 systemctl start nfs-lock && echo Success: start nfs-lock
 systemctl start nfs-idmap && echo Success: start nfs-idmap
-echo '/mnt/raid_mount 192.168.10.0/24(rw,sync,no_root_squash,no_all_squash)' > /etc/exports >> script_logs.txt && echo Success: server settings added to file
+echo '/mnt/raid_mount 192.168.10.0/24(rw,sync,no_root_squash,no_all_squash)' > /etc/exports && echo Success: server settings added to file
 exportfs -a && echo Success: export done
 systemctl restart nfs-server && echo Success: server restarted
