@@ -76,7 +76,10 @@ firewall-cmd --permanent --zone=public --add-service=rpc-bind && echo Success: a
 firewall-cmd --reload && echo Success: reloaded the rules
 
 #Removed raid
-function removed_raid {
+echo -n "Do you want to remove the raid? (y/n)"
+read answer
+if ["$answer != "${answer#[Yy]} ]; then
+echo 'Raid will be removed'
 umount $MountPoint && echo Success: unmounted
 lvremove /dev/LVM_test/LVM_data -y && echo Success: logical volume remove
 vgremove /dev/LVM_test -y && echo Success: volume group remove
@@ -89,4 +92,6 @@ mdadm --zero-superblock /dev/$ThirdName && echo Success: superblock on third dis
 (echo d; echo w) | fdisk /dev/$FirstName && echo Success: partition on the first disk is deleted
 (echo d; echo w) | fdisk /dev/$SecondName && echo Success: partition on the second disk is deleted
 (echo d; echo w) | fdisk /dev/$ThirdName && echo Success: partition on the third disk is deleted
-}
+else
+echo 'Raid will not be removed'
+fi
