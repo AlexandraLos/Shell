@@ -1,9 +1,7 @@
-#!/bin/bash
+#To write a log file to run a script, use the construction:
+#sh script1.sh 2> & 1 | tee -a script.log
 
-#Sending data to a log file
-exec 3>&1 4>&2
-trap 'exec 2>&4 1>&3' 0 1 2 3
-exec 1>script.log 2>&1
+#!/bin/bash
 
 #Сonfigure network to have ssh access from local machine
 yum -y install openssh-server openssh-clients && echo Success: install openssh
