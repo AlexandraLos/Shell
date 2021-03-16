@@ -34,11 +34,11 @@ else
    echo 'Directory exists'
 fi
 yum install mdadm -y && echo Success: install mdadm
-echo "Enter first disk names: "
+echo "Enter first disk name: "
    read FirstName
-echo "Enter second disk names: "
+echo "Enter second disk name: "
    read SecondName
-echo "Enter third disk names: "
+echo "Enter third disk name: "
    read ThirdName
    
 #Removed raid
