@@ -15,30 +15,31 @@ systemctl restart sshd.service && echo Success: SSH service restart
 mkdir -p /var/www/html/local_repo && echo Success: local repository mount point created
 mount -o loop CentOS-7-x86_64-DVD-2009.iso /mnt && echo Success: mount download ISO File
 cd /mnt && echo Success: directory changed
-tar cvf - . | (cd /var/www/html/local_repo/; tar xvf -) && echo Success: locally copied ISO files to directory 
+tar cvf - . | (cd /var/www/html/local_repo/; tar xvf -) && echo Success: locally copied ISO files to directory
 touch /etc/yum.repos.d/local-centos7.repo && echo Success: configuration file created
 chmod  644  /etc/yum.repos.d/local-centos7.repo && echo Success: file permissions set
-echo -e “[LocalRepo] \nname=LocalRepo \nmetadata_expire=-1 \nenabled=1 \ngpgcheck=1 \nbaseurl=file:///var/www/html/local_repo/  \ngpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release” >> /etc/yum.repos.d/local.repo && echo Success: file content changed
-yum install createrepo  yum-utils && echo Success: install createrepo  
+echo -e '[LocalRepo] \nname=LocalRepo \nmetadata_expire=-1 \nenabled=1 \ngpgcheck=1 \nbaseurl=file:///var/www/html/local_repo/  \ngpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release' >> /etc/yum.repos.d/local.repo && echo Success: file content changed
+yum install createrepo  yum-utils && echo Success: install createrepo
 createrepo /var/www/html/local_repo/ && echo Success: installed packages to create, configure and manage local repository
 yum clean all  && echo Success:  there was a cleaning of temporary files
 
 #Set up RAID5 on 3 more drives (i used /mnt/raid_mount)
 echo "Enter mount point: "
-read MountPoint
-if ! [ -d $MountPoint ]; then 
-echo 'No directory' 
-mkdir $MountPoint && echo Success: mount point created
-else 
-echo ‘Directory exists’
+   read MountPoint
+if ! [ -d $MountPoint ];
+then
+   echo 'No directory'
+   mkdir $MountPoint && echo Success: mount point created
+else
+   echo 'Directory exists'
 fi
-yum install mdadm –y && echo Success: install mdadm
+yum install mdadm -y && echo Success: install mdadm
 echo "Enter first disk names: "
-read FirstName
+   read FirstName
 echo "Enter second disk names: "
-read SecondName
+   read SecondName
 echo "Enter third disk names: "
-read ThirdName
+   read ThirdName
 mdadm --create --verbose /dev/md0 --level=5 --raid-devices=3 /dev/$FirstName /dev/$SecondName /dev/$ThirdName && echo Success: raid array created
 mkfs.xfs -f /dev/md0 && echo Success: file system created
 (echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/$FirstName && echo Success: first disk mapped
@@ -47,7 +48,7 @@ mkfs.xfs -f /dev/md0 && echo Success: file system created
 mdadm --detail --scan --verbose > /etc/mdadm.conf && echo Success: config file created
 
 #Set up LVM for the RAID
-pvcreate /dev/md0 && echo Success: Physical Volume created 
+pvcreate /dev/md0 && echo Success: Physical Volume created
 vgcreate LVM_test /dev/md0 && echo Success: Volume Group created
 lvcreate -l +100%FREE -n LVM_data LVM_test && echo Success: Logical Volume created
 
@@ -58,7 +59,7 @@ mkfs.xfs /dev/LVM_test/LVM_data -y && echo Success: file system created
 mount -t xfs /dev/LVM_test/LVM_data $MountPoint && echo Success: raid mounted
 
 #Explode the folder into the network with NFS
-yum install nfs-utils –y >> && echo Success: install nfs-utils
+yum install nfs-utils -y >> && echo Success: install nfs-utils
 systemctl enable rpcbind && echo Success: enable rpcbind
 systemctl enable nfs-server && echo Success: enable nfs-server
 systemctl enable nfs-lock && echo Success: enable nfs-lock
@@ -77,21 +78,22 @@ firewall-cmd --reload && echo Success: reloaded the rules
 
 #Removed raid
 echo -n "Do you want to remove the raid? (y/n)"
-read answer
-if ["$answer != "${answer#[Yy]} ]; then
-echo 'Raid will be removed'
-umount $MountPoint && echo Success: unmounted
-lvremove /dev/LVM_test/LVM_data -y && echo Success: logical volume remove
-vgremove /dev/LVM_test -y && echo Success: volume group remove
-pvremove /dev/md0 -y && echo Success: physical volume remove
-rm /etc/mdadm.conf -y && echo Success: mdadm.conf 
-mdadm --stop /dev/md0 && echo Success: mdadm stopped
-mdadm --zero-superblock /dev/$FirstName && echo Success: superblock on first disk is cleared
-mdadm --zero-superblock /dev/$SecondName && echo Success:superblock on second disk is cleared
-mdadm --zero-superblock /dev/$ThirdName && echo Success: superblock on third disk is cleared
-(echo d; echo w) | fdisk /dev/$FirstName && echo Success: partition on the first disk is deleted
-(echo d; echo w) | fdisk /dev/$SecondName && echo Success: partition on the second disk is deleted
-(echo d; echo w) | fdisk /dev/$ThirdName && echo Success: partition on the third disk is deleted
+   read answer
+if ["$answer" != "${answer#[Nn]}" ];
+then
+   echo 'Raid will be removed'
+   umount $MountPoint && echo Success: unmounted
+   lvremove /dev/LVM_test/LVM_data -y && echo Success: logical volume remove
+   vgremove /dev/LVM_test -y && echo Success: volume group remove
+   pvremove /dev/md0 -y && echo Success: physical volume remove
+   rm /etc/mdadm.conf -y && echo Success: mdadm.conf
+   mdadm --stop /dev/md0 && echo Success: mdadm stopped
+   mdadm --zero-superblock /dev/$FirstName && echo Success: superblock on first disk is cleared
+   mdadm --zero-superblock /dev/$SecondName && echo Success:superblock on second disk is cleared
+   mdadm --zero-superblock /dev/$ThirdName && echo Success: superblock on third disk is cleared
+   (echo d; echo w) | fdisk /dev/$FirstName && echo Success: partition on the first disk is deleted
+   (echo d; echo w) | fdisk /dev/$SecondName && echo Success: partition on the second disk is deleted
+   (echo d; echo w) | fdisk /dev/$ThirdName && echo Success: partition on the third disk is deleted
 else
-echo 'Raid will not be removed'
+   echo 'Raid will not be removed'
 fi
