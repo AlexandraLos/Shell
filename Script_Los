@@ -23,7 +23,7 @@ yum install createrepo  yum-utils && echo Success: install createrepo
 createrepo /var/www/html/local_repo/ && echo Success: installed packages to create, configure and manage local repository
 yum clean all  && echo Success:  there was a cleaning of temporary files
 
-#Set up RAID5 on 3 more drives (i used /mnt/raid_mount)
+#Find out the parameters for the raid
 echo "Enter mount point: "
    read MountPoint
 if ! [ -d $MountPoint ];
@@ -40,6 +40,30 @@ echo "Enter second disk names: "
    read SecondName
 echo "Enter third disk names: "
    read ThirdName
+   
+#Removed raid
+echo -n "Do you want to remove the raid? (y/n)"
+   read answer
+if ["$answer" != "${answer#[Nn]}" ];
+then
+   echo 'Raid will be removed'
+   umount $MountPoint && echo Success: unmounted
+   lvremove /dev/LVM_test/LVM_data -y && echo Success: logical volume remove
+   vgremove /dev/LVM_test -y && echo Success: volume group remove
+   pvremove /dev/md0 -y && echo Success: physical volume remove
+   rm /etc/mdadm.conf -y && echo Success: mdadm.conf
+   mdadm --stop /dev/md0 && echo Success: mdadm stopped
+   mdadm --zero-superblock /dev/$FirstName && echo Success: superblock on first disk is cleared
+   mdadm --zero-superblock /dev/$SecondName && echo Success:superblock on second disk is cleared
+   mdadm --zero-superblock /dev/$ThirdName && echo Success: superblock on third disk is cleared
+   (echo d; echo w) | fdisk /dev/$FirstName && echo Success: partition on the first disk is deleted
+   (echo d; echo w) | fdisk /dev/$SecondName && echo Success: partition on the second disk is deleted
+   (echo d; echo w) | fdisk /dev/$ThirdName && echo Success: partition on the third disk is deleted
+else
+   echo 'Raid will not be removed'
+fi
+
+#Set up RAID5 on 3 more drives (i used /mnt/raid_mount)
 mdadm --create --verbose /dev/md0 --level=5 --raid-devices=3 /dev/$FirstName /dev/$SecondName /dev/$ThirdName && echo Success: raid array created
 mkfs.xfs -f /dev/md0 && echo Success: file system created
 (echo n; echo p; echo 1; echo ; echo ; echo t; echo 8e; echo w) | fdisk /dev/$FirstName && echo Success: first disk mapped
@@ -75,25 +99,3 @@ firewall-cmd --permanent --zone=public --add-service=nfs && echo Success: added 
 firewall-cmd --permanent --zone=public --add-service=mountd && echo Success: added the second rule for the firewall
 firewall-cmd --permanent --zone=public --add-service=rpc-bind && echo Success: added the third rule for the firewall
 firewall-cmd --reload && echo Success: reloaded the rules
-
-#Removed raid
-echo -n "Do you want to remove the raid? (y/n)"
-   read answer
-if ["$answer" != "${answer#[Nn]}" ];
-then
-   echo 'Raid will be removed'
-   umount $MountPoint && echo Success: unmounted
-   lvremove /dev/LVM_test/LVM_data -y && echo Success: logical volume remove
-   vgremove /dev/LVM_test -y && echo Success: volume group remove
-   pvremove /dev/md0 -y && echo Success: physical volume remove
-   rm /etc/mdadm.conf -y && echo Success: mdadm.conf
-   mdadm --stop /dev/md0 && echo Success: mdadm stopped
-   mdadm --zero-superblock /dev/$FirstName && echo Success: superblock on first disk is cleared
-   mdadm --zero-superblock /dev/$SecondName && echo Success:superblock on second disk is cleared
-   mdadm --zero-superblock /dev/$ThirdName && echo Success: superblock on third disk is cleared
-   (echo d; echo w) | fdisk /dev/$FirstName && echo Success: partition on the first disk is deleted
-   (echo d; echo w) | fdisk /dev/$SecondName && echo Success: partition on the second disk is deleted
-   (echo d; echo w) | fdisk /dev/$ThirdName && echo Success: partition on the third disk is deleted
-else
-   echo 'Raid will not be removed'
-fi
