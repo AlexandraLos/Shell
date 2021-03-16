@@ -68,24 +68,24 @@ echo -n "Do you want to remove the raid? (y/n)"
 if ["$answer" != "${answer#[Nn]}" ];
 then
    mdadm —query $MountPoint
-	   if [ "$?" = "1" ]; 
-	   then
+      if [ "$?" = "1" ]; 
+      then
          create_raid
-       else
-		   echo 'Raid will be removed'
-		   umount $MountPoint && echo Success: unmounted
-		   lvremove /dev/LVM_test/LVM_data -y && echo Success: logical volume remove
-		   vgremove /dev/LVM_test -y && echo Success: volume group remove
-		   pvremove /dev/md0 -y && echo Success: physical volume remove
-		   rm /etc/mdadm.conf -y && echo Success: mdadm.conf
-		   mdadm --stop /dev/md0 && echo Success: mdadm stopped
-		   mdadm --zero-superblock /dev/$FirstName && echo Success: superblock on first disk is cleared
-		   mdadm --zero-superblock /dev/$SecondName && echo Success:superblock on second disk is cleared
-		   mdadm --zero-superblock /dev/$ThirdName && echo Success: superblock on third disk is cleared
-		   (echo d; echo w) | fdisk /dev/$FirstName && echo Success: partition on the first disk is deleted
-		   (echo d; echo w) | fdisk /dev/$SecondName && echo Success: partition on the second disk is deleted
-		   (echo d; echo w) | fdisk /dev/$ThirdName && echo Success: partition on the third disk is deleted
-		fi
+      else
+         echo 'Raid will be removed'
+         umount $MountPoint && echo Success: unmounted
+         lvremove /dev/LVM_test/LVM_data -y && echo Success: logical volume remove
+         vgremove /dev/LVM_test -y && echo Success: volume group remove
+         pvremove /dev/md0 -y && echo Success: physical volume remove
+	 rm /etc/mdadm.conf -y && echo Success: mdadm.conf
+	 mdadm --stop /dev/md0 && echo Success: mdadm stopped
+	 mdadm --zero-superblock /dev/$FirstName && echo Success: superblock on first disk is cleared
+         mdadm --zero-superblock /dev/$SecondName && echo Success:superblock on second disk is cleared
+         mdadm --zero-superblock /dev/$ThirdName && echo Success: superblock on third disk is cleared
+         (echo d; echo w) | fdisk /dev/$FirstName && echo Success: partition on the first disk is deleted
+         (echo d; echo w) | fdisk /dev/$SecondName && echo Success: partition on the second disk is deleted
+         (echo d; echo w) | fdisk /dev/$ThirdName && echo Success: partition on the third disk is deleted
+      fi
 else
    echo 'Raid will not be removed'
 fi
